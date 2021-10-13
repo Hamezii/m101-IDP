@@ -29,13 +29,12 @@ void loop() {
   cm = (duration/2) / 29.1;     // Divide by 29.1 or multiply by 0.0343
   inches = (duration/2) / 74;   // Divide by 74 or multiply by 0.0135
 
-
-  Serial.print(duration);
-  //Serial.print(inches);
-  Serial.print("in, ");
-  Serial.print(cm);
-  Serial.print("cm");
+  if(cm<500){
+    Serial.print(cm);
+  //Serial.print("cm");
   Serial.println();
+  }
   
-  delay(250);
+  
+  delay(100);
 }
