@@ -6,10 +6,8 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *leftMotor = AFMS.getMotor(3);
 Adafruit_DCMotor *rightMotor = AFMS.getMotor(4);
 Servo grabberServo; 
-#define leftLineSensor A0
-#define rightLineSensor A1
-lastCall = "None"
-
+#define leftLineSensor 4
+#define rightLineSensor 5
 void setup() {
   // put your setup code here, to run once:
   AFMS.begin();
@@ -20,8 +18,8 @@ void setup() {
 }
 
 void forward(){
-  int MotorSpeed = 0
-  int TargetSpeed = 255
+  /*int MotorSpeed = 0;
+  int TargetSpeed = 255;
   while (MotorSpeed <= TargetSpeed){
     MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
@@ -29,13 +27,16 @@ void forward(){
     leftMotor->run(FORWARD);
     rightMotor->run(FORWARD);
     delay(5);
-  lastCall = "forward";
-  }
+  }*/
+  leftMotor->setSpeed(200);
+  rightMotor->setSpeed(200);
+  leftMotor->run(FORWARD);
+  rightMotor->run(FORWARD);
 }
 
 void backward(){
-  int MotorSpeed = 0
-  int TargetSpeed = 255
+  /*int MotorSpeed = 0;
+  int TargetSpeed = 255;
   while (MotorSpeed <= TargetSpeed){
     MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
@@ -43,13 +44,16 @@ void backward(){
     leftMotor->run(BACKWARD);
     rightMotor->run(BACKWARD);
     delay(5);
-  lastCall = "backward";
-  }
+  }*/
+  leftMotor->setSpeed(200);
+  rightMotor->setSpeed(200);
+  leftMotor->run(BACKWARD);
+  rightMotor->run(BACKWARD);
 }
 
 void left(){
-  int MotorSpeed = 0
-  int TargetSpeed = 255
+  /*int MotorSpeed = 0;
+  int TargetSpeed = 255;
   while (MotorSpeed <= TargetSpeed){
     MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
@@ -57,13 +61,16 @@ void left(){
     leftMotor->run(BACKWARD);
     rightMotor->run(FORWARD);
     delay(5);
-  lastCall = "left";
-  }
+  }*/
+  leftMotor->setSpeed(100);
+  rightMotor->setSpeed(100);
+  leftMotor->run(BACKWARD);
+  rightMotor->run(FORWARD);
 }
 
 void right(){
-  int MotorSpeed = 0
-  int TargetSpeed = 255
+  /*int MotorSpeed = 0;
+  int TargetSpeed = 255;
   while (MotorSpeed <= TargetSpeed){
     MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
@@ -71,8 +78,11 @@ void right(){
     leftMotor->run(FORWARD);
     rightMotor->run(BACKWARD);
     delay(5);
-  lastCall = "right";
-  }
+  }*/
+  leftMotor->setSpeed(100);
+  rightMotor->setSpeed(100);
+  leftMotor->run(FORWARD);
+  rightMotor->run(BACKWARD);
 }
 
 void rest(){
@@ -104,36 +114,28 @@ void FollowLine(){
   //line detected by neither
   if(digitalRead(leftLineSensor)==0 && digitalRead(rightLineSensor)==0){
     //Forward
-    if (!lastCall == "forward"){
-      lastCall = "forward";
-      forward();
-    }
+    forward();
   }
   //line detected by left sensor
-  else if(digitalRead(left)==1 && digitalRead(right)==0){
+  else if(digitalRead(leftLineSensor)==1 && digitalRead(rightLineSensor)==0){
     //turn left
-    if (!lastCall == "left"){
-      lastCall = "left";
-      left();
-    }
+    left();
   }
   //line detected by right sensor
-  else if(digitalRead(left)==0 && digitalRead(right)==1){
+  else if(digitalRead(leftLineSensor)==0 && digitalRead(rightLineSensor)==1){
     //turn right
-    if (!lastCall == "right"){
-      lastCall = "right";
-      right();
-    }
+    right();
   }
   //line detected by none
-  else if(digitalRead(left)==0 && digitalRead(right)==0){
+  /*else if(digitalRead(left)==0 && digitalRead(right)==0){
     //lost
-    lostLine(lastCall);
-   
+    //lostLine(lastCall);
+  
   }
+  */
 }
 
-void lostLine(lastCall){
+/*void lostLine(lastCall){
   if (lastCall == "forward"){
     backward();
   else if (lastCall == "backward"){
@@ -146,7 +148,8 @@ void lostLine(lastCall){
   }
 }
 
+*/
 void loop() {
   // put your main code here, to run repeatedly:
-
+  FollowLine();
 }
