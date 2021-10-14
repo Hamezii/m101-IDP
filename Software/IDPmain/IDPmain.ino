@@ -23,7 +23,7 @@ void forward(){
   int MotorSpeed = 0
   int TargetSpeed = 255
   while (MotorSpeed <= TargetSpeed){
-    MotorSpeed += 10;
+    MotorSpeed = min(MotorSpeed + 10, TargetSpeed) //MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
     rightMotor->setSpeed(MotorSpeed);
     leftMotor->run(FORWARD);
@@ -37,7 +37,7 @@ void backward(){
   int MotorSpeed = 0
   int TargetSpeed = 255
   while (MotorSpeed <= TargetSpeed){
-    MotorSpeed += 10;
+    MotorSpeed = min(MotorSpeed + 10, TargetSpeed) //MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
     rightMotor->setSpeed(MotorSpeed);
     leftMotor->run(BACKWARD);
@@ -51,7 +51,7 @@ void left(){
   int MotorSpeed = 0
   int TargetSpeed = 255
   while (MotorSpeed <= TargetSpeed){
-    MotorSpeed += 10;
+    MotorSpeed = min(MotorSpeed + 10, TargetSpeed) //MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
     rightMotor->setSpeed(MotorSpeed);
     leftMotor->run(BACKWARD);
@@ -61,11 +61,12 @@ void left(){
   }
 }
 
+
 void right(){
   int MotorSpeed = 0
   int TargetSpeed = 255
   while (MotorSpeed <= TargetSpeed){
-    MotorSpeed += 10;
+    MotorSpeed = min(MotorSpeed + 10, TargetSpeed) //MotorSpeed += 10;
     leftMotor->setSpeed(MotorSpeed);
     rightMotor->setSpeed(MotorSpeed);
     leftMotor->run(FORWARD);
@@ -74,6 +75,20 @@ void right(){
   lastCall = "right";
   }
 }
+
+// This FOR loop also works
+//void right(){
+//  int TargetSpeed = 255
+//  leftMotor->run(FORWARD);
+//  rightMotor->run(BACKWARD);
+//  for (int MotorSpeed = 0; MotorSpeed <= TargetSpeed; MotorSpeed = min(MotorSpeed + 10, TargetSpeed){
+//    leftMotor->setSpeed(MotorSpeed);
+//    rightMotor->setSpeed(MotorSpeed);
+//    delay(5);
+//  lastCall = "right";
+//  }
+//}
+
 
 void rest(){
   leftMotor->setSpeed(0);
