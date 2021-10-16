@@ -1,3 +1,4 @@
+#include <RunningAverage.h>
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
@@ -9,6 +10,7 @@ Servo grabberServo;
 #define leftLineSensor A0
 #define rightLineSensor A1
 lastCall = "None"
+
 
 void setup() {
   // put your setup code here, to run once:
