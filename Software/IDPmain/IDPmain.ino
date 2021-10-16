@@ -11,6 +11,8 @@ Servo grabberServo;
 #define rightLineSensor A1
 lastCall = "None"
 
+RunningAverage leftLineSensorRA(10);
+RunningAverage rightLineSensorRA(10);
 
 void setup() {
   // put your setup code here, to run once:
