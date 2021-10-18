@@ -4,21 +4,19 @@
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h>
 using namespace std;
-#include <algorithm>
-#include <cmath>
 
 
 
 // ___ OBJECTS ___
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
-Adafruit_DCMotor *leftMotor = AFMS.getMotor(3);
-Adafruit_DCMotor *rightMotor = AFMS.getMotor(4);
+Adafruit_DCMotor *leftMotor = AFMS.getMotor(2);
+Adafruit_DCMotor *rightMotor = AFMS.getMotor(1);
 Servo grabberServo; 
 
 
 
 // ___ CONSTANTS ___
-const int MOTOR_ACCEL = 10
+const int MOTOR_ACCEL = 10;
 #define leftLineSensor A0
 #define rightLineSensor A1
 
@@ -46,7 +44,20 @@ RunningAverage rightLineSensorRA(10);
 
 
 // ___ SENSOR INTERFACE ___
-// TODO
+void updateSensors() {
+  leftLineSensorRA.addValue(digitalRead(leftLineSensor));
+  rightLineSensorRA.addValue(digitalRead(rightLineSensor));
+}
+
+
+bool leftLineSensorVal() {
+  return (leftLineSensorRA.getAverage() > 0.5) ? true : false; // Return true if average is bigger than 0.5, else return false
+}
+
+
+bool rightLineSensorVal() {
+  return (rightLineSensorRA.getAverage() > 0.5) ? true : false;
+}
 
 
 
@@ -54,15 +65,15 @@ RunningAverage rightLineSensorRA(10);
 void updateMotorSpeeds() { 
   // Move the motorCurrent variables towards their target speeds
   if (leftMotorTarget > leftMotorCurrent) {
-    leftMotorCurrent = min(leftMotorCurrent + MOTOR_ACCEL, leftMotorTarget)
+    leftMotorCurrent = min(leftMotorCurrent + MOTOR_ACCEL, leftMotorTarget);
   } else {
-    leftMotorCurrent = max(leftMotorCurrent - MOTOR_ACCEL, leftMotorTarget)
+    leftMotorCurrent = max(leftMotorCurrent - MOTOR_ACCEL, leftMotorTarget);
   }
   
   if (rightMotorTarget > rightMotorCurrent) {
-    rightMotorCurrent = min(rightMotorCurrent + MOTOR_ACCEL, rightMotorTarget)
+    rightMotorCurrent = min(rightMotorCurrent + MOTOR_ACCEL, rightMotorTarget);
   } else {
-    rightMotorCurrent = max(rightMotorCurrent - MOTOR_ACCEL, rightMotorTarget)
+    rightMotorCurrent = max(rightMotorCurrent - MOTOR_ACCEL, rightMotorTarget);
   }
 }
 
@@ -89,11 +100,11 @@ void updateMotors() {
 String getDriveDir() { 
   // Get the direction the robot is moving
   // Returns a String
-  if (leftMotorTarget == 0) and (rightMotorTarget == 0) {return "None";}
-  else if (leftMotorTarget >= 0) and (rightMotorTarget >= 0) {return "Forward";}
-  else if (leftMotorTarget >= 0) and (rightMotorTarget <= 0) {return "Right";}
-  else if (leftMotorTarget <= 0) and (rightMotorTarget >= 0) {return "Left";}
-  else if (leftMotorTarget <= 0) and (rightMotorTarget <= 0) {return "Backward";}
+  if (leftMotorTarget == 0 && rightMotorTarget == 0) {return "None";}
+  else if (leftMotorTarget >= 0 && rightMotorTarget >= 0) {return "Forward";}
+  else if (leftMotorTarget >= 0 && rightMotorTarget <= 0) {return "Right";}
+  else if (leftMotorTarget <= 0 && rightMotorTarget >= 0) {return "Left";}
+  else if (leftMotorTarget <= 0 && rightMotorTarget <= 0) {return "Backward";}
 }
 
 
@@ -134,16 +145,15 @@ void GrabberDown() {
 void followLine(){
   
   //line detected by neither
-  if(digitalRead(leftLineSensor)==0 && digitalRead(rightLineSensor)==0){
+  if(!leftLineSensorVal() && !rightLineSensorVal()){
     setDriveDir("Forward");
   }
   //line detected by left sensor
-  else if(digitalRead(left)==1 && digitalRead(right)==0){
+  else if(leftLineSensorVal() && !rightLineSensorVal()){
     setDriveDir("Left");
-    }
   }
   //line detected by right sensor
-  else if(digitalRead(left)==0 && digitalRead(right)==1){
+  else if(!leftLineSensorVal() && rightLineSensorVal()){
     setDriveDir("Right");
   }
 }
@@ -163,7 +173,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  if ((rand() % 200) == 0){setDriveDir("None");}
+  else if ((rand() % 200) == 0){setDriveDir("Forward");}
+  else if ((rand() % 200) == 0){setDriveDir("Backward");}
+  else if ((rand() % 200) == 0){setDriveDir("Left");}
+  else if ((rand() % 200) == 0){setDriveDir("Right");}
   followLine();
   updateMotors();
+  updateSensors();
   delay(10);
 }
