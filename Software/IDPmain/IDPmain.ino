@@ -13,6 +13,8 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *leftMotor = AFMS.getMotor(3);
 Adafruit_DCMotor *rightMotor = AFMS.getMotor(4);
 Servo grabberServo; 
+#define ir A0
+#define model 1080
 SharpIR SharpIR(ir, model);
 
 
@@ -21,8 +23,6 @@ SharpIR SharpIR(ir, model);
 const int MOTOR_ACCEL = 1000;
 #define leftLineSensor 4
 #define rightLineSensor 5
-#define ir A0
-#define model 1080
 
 
 
@@ -40,6 +40,11 @@ int rightMotorTarget = 0;
 // Running average of sensor values, for more accurate read values
 RunningAverage leftLineSensorRA(4);
 RunningAverage rightLineSensorRA(4);
+RunningAverage distSensorRA(4);
+
+// State
+int t = 0; // t is incremented after each loop.
+String state = "Start";
 
 
 
@@ -51,6 +56,7 @@ RunningAverage rightLineSensorRA(4);
 void updateSensors() {
   leftLineSensorRA.addValue(digitalRead(leftLineSensor));
   rightLineSensorRA.addValue(digitalRead(rightLineSensor));
+  distSensorRA.addValue(min(max(9, SharpIR.distance()), 80)); // Clamped between 9 and 80
 }
 
 
@@ -64,10 +70,35 @@ bool rightLineSensorVal() {
 }
 
 
-int sharpIRVal() {
-  int dist = SharpIR.distance();
-  return dist
+int distSensorVal() {
+  // static_cast converts from a float to an int
+  return static_cast<int>(distSensorRA.getAverage());
 }
+
+
+int distSensorDelta() {
+  const int SAMPLE_PERIOD = 4; // Comparing current dist RA value to the one from this many loops ago
+  // the static prefix means that the value of the variable is initialised once, and then saved between function calls.
+  static int lastSampleT = 0;
+  static int lastSample = 0;
+
+  // Update sample every SAMPLE_PERIOID loops.
+  if (lastSampleT + SAMPLE_PERIOD <= t) {
+    lastSample = distSensorVal();
+    lastSampleT = t;
+  }
+
+  return distSensorVal() - lastSample; // Return delta
+}
+
+
+// Returns true if there is a sudden negative change in distance sensed.
+// Returns false otherwise.
+bool detectBlockAppearing() {
+  const int CHANGE_THRESHOLD = -8; // If the difference is this much or more (negatively), return true.
+  return distSensorDelta() <= CHANGE_THRESHOLD;
+}
+
 
 
 // ___ MOTOR MANAGEMENT ___
@@ -181,9 +212,12 @@ void setup() {
 
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  followLine();
+  // Logic
+  if (state == "Start") followLine();
+
+  // Loop updates 
   updateMotors();
   updateSensors();
+  t = t+1;
   delay(2);
 }
