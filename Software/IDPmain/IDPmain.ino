@@ -137,17 +137,6 @@ void updateMotors() {
 
 
 // ___ DRIVING INTERFACE ___
-String getDriveDir() { 
-  // Get the direction the robot is moving
-  // Returns a String
-  if (leftMotorTarget == 0 && rightMotorTarget == 0) {return "None";}
-  else if (leftMotorTarget >= 0 && rightMotorTarget >= 0) {return "Forward";}
-  else if (leftMotorTarget >= 0 && rightMotorTarget <= 0) {return "Right";}
-  else if (leftMotorTarget <= 0 && rightMotorTarget >= 0) {return "Left";}
-  else if (leftMotorTarget <= 0 && rightMotorTarget <= 0) {return "Backward";}
-}
-
-
 void setDriveDir(String dir) { 
   // Set the direction for the robot to drive in
   // Takes a String parameter
