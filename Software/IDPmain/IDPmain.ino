@@ -3,22 +3,26 @@
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h>
+#include "SharpIR.h"
 using namespace std;
 
 
 
 // ___ OBJECTS ___
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
-Adafruit_DCMotor *leftMotor = AFMS.getMotor(2);
-Adafruit_DCMotor *rightMotor = AFMS.getMotor(1);
+Adafruit_DCMotor *leftMotor = AFMS.getMotor(3);
+Adafruit_DCMotor *rightMotor = AFMS.getMotor(4);
 Servo grabberServo; 
+SharpIR SharpIR(ir, model);
 
 
 
 // ___ CONSTANTS ___
-const int MOTOR_ACCEL = 10;
-#define leftLineSensor A0
-#define rightLineSensor A1
+const int MOTOR_ACCEL = 1000;
+#define leftLineSensor 4
+#define rightLineSensor 5
+#define ir A0
+#define model 1080
 
 
 
@@ -34,8 +38,8 @@ int leftMotorTarget = 0;
 int rightMotorTarget = 0;
 
 // Running average of sensor values, for more accurate read values
-RunningAverage leftLineSensorRA(10);
-RunningAverage rightLineSensorRA(10);
+RunningAverage leftLineSensorRA(4);
+RunningAverage rightLineSensorRA(4);
 
 
 
@@ -59,6 +63,11 @@ bool rightLineSensorVal() {
   return (rightLineSensorRA.getAverage() > 0.5) ? true : false;
 }
 
+
+int sharpIRVal() {
+  int dist = SharpIR.distance();
+  return dist
+}
 
 
 // ___ MOTOR MANAGEMENT ___
@@ -112,7 +121,7 @@ void setDriveDir(String dir) {
   // Set the direction for the robot to drive in
   // Takes a String parameter
   if (dir == "None") {leftMotorTarget = 0; rightMotorTarget = 0;}
-  if (dir == "Forward") {leftMotorTarget = 255; rightMotorTarget = 255;}
+  if (dir == "Forward") {leftMotorTarget = 200; rightMotorTarget = 200;}
   if (dir == "Backward") {leftMotorTarget = -255; rightMotorTarget = -255;}
   if (dir == "Left") {leftMotorTarget = 120; rightMotorTarget = -120;}
   if (dir == "Right") {leftMotorTarget = -120; rightMotorTarget = 120;}
@@ -173,13 +182,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if ((rand() % 200) == 0){setDriveDir("None");}
-  else if ((rand() % 200) == 0){setDriveDir("Forward");}
-  else if ((rand() % 200) == 0){setDriveDir("Backward");}
-  else if ((rand() % 200) == 0){setDriveDir("Left");}
-  else if ((rand() % 200) == 0){setDriveDir("Right");}
   followLine();
   updateMotors();
   updateSensors();
-  delay(10);
+  delay(2);
 }
