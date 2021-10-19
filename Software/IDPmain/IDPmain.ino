@@ -50,7 +50,6 @@ bool onPerpendicularLine = false;
 enum State_enum {START, STARTING_BLOCK_SEARCH, BLOCK_SEARCH, APPROACH_BLOCK, PICK_UP_BLOCK};
 uint8_t state = START;              //uint8_t is an 8-bit integer / byte
 int t = 0; // t is incremented after each loop.
-int timer = 0; // Used in time-based logic
 
 
 
@@ -217,8 +216,10 @@ void setup() {
 
 void loop() {
   // Logic
-  int counter = 0;
-  
+  static int counter = 0;
+  static int timer = 0; 
+  static bool isBlockMetal = false; // To remember what the currently held block's type is
+
   switch (state){
     
     case START: // Travel from start to pickup box
