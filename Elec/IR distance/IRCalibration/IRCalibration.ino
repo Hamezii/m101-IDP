@@ -58,9 +58,10 @@ void loop() {
   //if(MeanDis<=9) MeanDis=9;
   Serial.println(IR_Dis);
 
-  //int Ultra_Dis = GetDisUltra();
+  int Ultra_Dis = GetDisUltra();
   
   //Serial.println(Ultra_Dis);
+  delay(50);
   
   //Serial.print("Mean distance: ");  // returns it to the serial monitor
   

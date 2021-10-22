@@ -105,7 +105,7 @@ int SharpIR::distance() {
     if (_model==1080) {
 
           distanceCM = median;
-          //29.88 * pow(map(median, 0, 1023, 0, 5000)/1000.0, -1.245);
+          //25.11 * pow(map(median, 0, 1023, 0, 5000)/1000.0, -1.822) + 5.135;
 
     } else if (_model==20150){
 
