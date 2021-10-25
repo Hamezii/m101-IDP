@@ -17,9 +17,9 @@ void loop() {
   // put your main code here, to run repeatedly:
   leftMotor->run(FORWARD);
   rightMotor->run(FORWARD);
-  delay(3000);
-  leftMotor->run(FORWARD);
-  rightMotor->run(BACKWARD);
+  //delay(3000);
+  //leftMotor->run(FORWARD);
+  //rightMotor->run(BACKWARD);
   delay(2000);
   
 
