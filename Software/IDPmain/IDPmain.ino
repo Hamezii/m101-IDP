@@ -24,6 +24,15 @@ const int MOTOR_ACCEL = 1000;
 
 
 // ___ VARIABLE INITS ___
+// Ultrasonic sensor
+int trigPin = 11;    // Trigger
+int echoPin = 12;    // Echo
+//long H_Ultra = 8;   // Height of ultrasonic sensor (cm)
+long T_Gnd_min = 800, T_Gnd_max = 900;
+long T_Block_max = 700, T_Block_far_max = 1000;
+// need to test value after fix ultrasonic
+
+
 // Cache for the current motor speeds
 // The caches are signed to signify forward or backward movement
 int leftMotorCurrent = 0; 
@@ -39,12 +48,15 @@ RunningAverage leftLineSensorRA(4);
 RunningAverage rightLineSensorRA(4);
 RunningAverage distSensorRA(4);
 
+bool rightLineSensorPrev = false;
+bool leftLineSensorPrev = false;
+
 // When first detecting a line, detectedPerpendicularLine will tick true for one loop, then go back to false.
 bool detectedPerpendicularLine = false; 
 bool onPerpendicularLine = false;
 
 // State
-enum State_enum {START, STARTING_BLOCK_SEARCH, SWEEP_LEFT, SWEEP_RIGHT, APPROACH_BLOCK, PICK_UP_BLOCK};
+enum State_enum {START, STARTING_BLOCK_SEARCH, SWEEP, SWEEP_FORWARD, PICK_UP_BLOCK, IDENTIFY_BLOCK, RETURN_TO_LINE, GO_TO_DROPOFF, PICKING_DROPOFF};
 uint8_t state = START;              //uint8_t is an 8-bit integer / byte
 int t = 0; // t is incremented after each loop.
 
@@ -54,8 +66,52 @@ int t = 0; // t is incremented after each loop.
 
 
 
+// ___ ULTRASONIC SENSOR ___
+void Set_Ultrasonic(){
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+
+
+long GetTime_Ultrasonic(){
+  long duration=0, cm;
+  // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+  for(int m=0;m<5;m++){
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(5);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    duration += pulseIn(echoPin, HIGH);
+    delay(1);
+  }
+  // Read the signal from the sensor: a HIGH pulse whose
+  // duration is the time (in microseconds) from the sending
+  // of the ping to the reception of its echo off of an object.
+
+
+  // Convert the time into a distance
+  //cm = (duration/2) / 29.1+1;     // Divide by 29.1 or multiply by 0.0343
+
+  if(duration<10000) return(duration/5);
+}
+
+
+int isBlock(){ // Ground->0; Block->1; Block a bit far->2
+  long Time=GetTime_Ultrasonic();
+  if((Time<T_Block_max)) return 1;
+  else if((Time>T_Gnd_min)&&(Time<T_Gnd_max)) return 0;
+  else if((Time>T_Gnd_max)&&(Time<T_Block_far_max)) return 2;
+  else return -1;
+}
+
+
+
 // ___ SENSOR INTERFACE ___
 void updateSensing() {
+  leftLineSensorPrev = leftLineSensorVal();
+  rightLineSensorPrev = rightLineSensorVal();
   leftLineSensorRA.addValue(digitalRead(leftLineSensor));
   rightLineSensorRA.addValue(digitalRead(rightLineSensor));
   
@@ -78,12 +134,6 @@ bool leftLineSensorVal() {
 
 bool rightLineSensorVal() {
   return (rightLineSensorRA.getAverage() > 0.5) ? true : false;
-}
-
-
-bool detectBlock() {
-  // if ultrasonic sensor below threshold
-  //   return true
 }
 
 
@@ -132,8 +182,10 @@ void setDriveDir(String dir) {
   if (dir == "Backward") {leftMotorTarget = -255; rightMotorTarget = -255;}
   if (dir == "Left") {leftMotorTarget = -120; rightMotorTarget = 120;}
   if (dir == "Right") {leftMotorTarget = 120; rightMotorTarget = -120;}
-  if (dir == "SweepLeft") {leftMotorTarget = -70; rightMotorTarget = 120;}
-  if (dir == "SweepRight") {leftMotorTarget = 120; rightMotorTarget = -70;}
+  if (dir == "SlowLeft") {leftMotorTarget = -70; rightMotorTarget = 70;}
+  if (dir == "SlowRight") {leftMotorTarget = 70; rightMotorTarget = -70;}
+  if (dir == "BackLeft") {leftMotorTarget = 0; rightMotorTarget = 120;}
+  if (dir == "BackRight") {leftMotorTarget = 120; rightMotorTarget = 0;}
 }
 
 
@@ -160,13 +212,19 @@ void GrabberDown() {
 
 
 // ___ ALGORITHMS ___
-void followLine(){
-  if (onPerpendicularLine) setDriveDir("Forward");
-  else if(!leftLineSensorVal() && !rightLineSensorVal()) setDriveDir("Forward");
-  else if(leftLineSensorVal() && !rightLineSensorVal()) setDriveDir("Left");
-  else if(!leftLineSensorVal() && rightLineSensorVal()) setDriveDir("Right");
+void followLine(int forward = true){
+  if (onPerpendicularLine) setDriveDir(forward ? "Forward": "Backward");
+  else if(!leftLineSensorVal() && !rightLineSensorVal()) setDriveDir(forward ? "Forward" : "Backward");
+  else if(leftLineSensorVal() && !rightLineSensorVal()) setDriveDir(forward ? "Left" : "BackRight");
+  else if(!leftLineSensorVal() && rightLineSensorVal()) setDriveDir(forward ? "Right" : "BackLeft");
 }
 
+
+bool returnToLine(bool leftOfLine){
+  setDriveDir(leftOfLine ? "SlowRight" : "SlowLeft");
+  // Just stopped sensing line? (meaning it is now between the sensors)
+  return (!rightLineSensorVal() && !leftLineSensorVal()) && (rightLineSensorPrev || leftLineSensorPrev);
+}
 
 
 // ___ MAIN ___
@@ -176,6 +234,7 @@ void setup() {
   grabberServo.attach(10);  // attaches the servo on pin 10 to the servo object
   pinMode(leftLineSensor,INPUT);
   pinMode(rightLineSensor,INPUT);
+  Set_Ultrasonic();
   Serial.begin(9600);
 }
 
@@ -184,45 +243,77 @@ void loop() {
   // Logic
   static int counter = 0;
   static int timer = 0; 
-  static bool isBlockMetal = false; // To remember what the currently held block's type is
+  // To remember what the currently held block's type is
+  static bool isBlockMetal = false; 
+  // When scanning off the line, this lets the robot know which side of the line it's on.
+  static bool leftOfLine = true;
 
   switch (state){
     
     case START: // Travel from start to pickup box
       followLine();
       if (detectedPerpendicularLine) counter = counter + 1;
-      if (counter == 2) state = STARTING_BLOCK_SEARCH;  
+      if (counter == 3) {state = STARTING_BLOCK_SEARCH;  timer = t + 10;}
     break;
 
     
     case STARTING_BLOCK_SEARCH:
-      state = SWEEP_LEFT;
+      if (t < timer) setDriveDir("Backward");
+      else {state = SWEEP; leftOfLine = true; timer = t + 100;}
     break;
 
-    case SWEEP_LEFT:
-      setDriveDir("SweepLeft");
-      if (leftLineSensorVal()) state = SWEEP_RIGHT;
-      
+    case SWEEP:
+      if (t < timer) { // Turning away from line
+        setDriveDir(leftOfLine ? "SlowLeft" : "SlowRight");
+      }
+      else if (returnToLine(leftOfLine)){ // Returned back to line?
+        if (leftOfLine) { // Returning from left
+          timer = t + 100;
+        } else { // Returning from right
+          state = SWEEP_FORWARD;
+          timer = t + 30;
+        }
+        leftOfLine = !leftOfLine;
+      } else if (isBlock() != 0){
+        
+        state = PICK_UP_BLOCK;
+      }
     break;
 
-    case SWEEP_RIGHT:
-      setDriveDir("SweepRight");
-      if (rightLineSensorVal()) state = SWEEP_RIGHT;
-    break;
-
-
-    case APPROACH_BLOCK:
-      setDriveDir("SlowForward");
-//      if (ultrasonic sensor below pick up threshold) {
-//        setDriveDir("Stop");
-//        state = PICK_UP_BLOCK;
-//      }
+    case SWEEP_FORWARD:
+      if (t < timer) setDriveDir("SlowForward");
+      else {
+        state = SWEEP;
+        timer = t + 100;
+        leftOfLine = true;
+      }
     break;
 
     case PICK_UP_BLOCK:
-      
+      printf("Found");
+      setDriveDir("Stop");
+      // TODO Pick up block
+      state = IDENTIFY_BLOCK;
     break;
-  
+
+    case IDENTIFY_BLOCK:
+    // TODO identify
+      isBlockMetal = true;
+      state = RETURN_TO_LINE;
+    break;
+
+    case RETURN_TO_LINE:
+      if (returnToLine(leftOfLine)) {
+        state = GO_TO_DROPOFF;
+        counter = 0;
+      }
+    break;
+
+    case GO_TO_DROPOFF:
+      followLine(false); // Going backwards
+      if (detectedPerpendicularLine) counter = counter + 1;
+      if (counter == 2) state = PICKING_DROPOFF;
+    break;
   }
 
   // Loop updates 
