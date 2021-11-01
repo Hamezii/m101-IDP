@@ -12,12 +12,14 @@ using namespace std;
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_DCMotor *leftMotor = AFMS.getMotor(4);
 Adafruit_DCMotor *rightMotor = AFMS.getMotor(3);
-Servo grabberServo; 
+Adafruit_DCMotor *grabberMotor = AFMS.getMotor(2);
+Servo liftServo;
 
 
 
 // ___ CONSTANTS ___
 const int MOTOR_ACCEL = 1000;
+const unsigned long RotateTime = 1000;
 #define leftLineSensor 4
 #define rightLineSensor 5
 
@@ -25,12 +27,14 @@ const int MOTOR_ACCEL = 1000;
 
 // ___ VARIABLE INITS ___
 // Ultrasonic sensor
-int trigPin = 11;    // Trigger
-int echoPin = 12;    // Echo
+int trigPin = 10;    // Trigger
+int echoPin = 11;    // Echo
 //long H_Ultra = 8;   // Height of ultrasonic sensor (cm)
-long T_Gnd_min = 800, T_Gnd_max = 900;
-long T_Block_max = 700, T_Block_far_max = 1000;
+long T_Gnd_min = 10.5;
+long T_Block_max = 9.5;
 // need to test value after fix ultrasonic
+
+  int up=1; //******
 
 
 // Cache for the current motor speeds
@@ -57,8 +61,8 @@ bool onPerpendicularLine = false;
 
 // State
 enum State_enum {START, STARTING_BLOCK_SEARCH, SWEEP, SWEEP_FORWARD, PICK_UP_BLOCK, IDENTIFY_BLOCK, RETURN_TO_LINE, GO_TO_DROPOFF, PICKING_DROPOFF};
-uint8_t state = START;              //uint8_t is an 8-bit integer / byte
-int t = 0; // t is incremented after each loop.
+uint8_t state =START;              //uint8_t is an 8-bit integer / byte
+unsigned long t = 0; // t is incremented after each loop.
 
 
 
@@ -73,7 +77,7 @@ void Set_Ultrasonic(){
 }
 
 
-long GetTime_Ultrasonic(){
+long GetDis_Ultrasonic(){
   long duration=0, cm;
   // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
@@ -84,7 +88,7 @@ long GetTime_Ultrasonic(){
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);
     duration += pulseIn(echoPin, HIGH);
-    delay(1);
+    delay(2);
   }
   // Read the signal from the sensor: a HIGH pulse whose
   // duration is the time (in microseconds) from the sending
@@ -93,16 +97,17 @@ long GetTime_Ultrasonic(){
 
   // Convert the time into a distance
   //cm = (duration/2) / 29.1+1;     // Divide by 29.1 or multiply by 0.0343
-
-  if(duration<10000) return(duration/5);
+  duration/=5;
+  cm = (duration/2) / 29.1;
+  if(cm<50) return(cm);
+  return 50;
 }
 
 
-int isBlock(){ // Ground->0; Block->1; Block a bit far->2
-  long Time=GetTime_Ultrasonic();
-  if((Time<T_Block_max)) return 1;
-  else if((Time>T_Gnd_min)&&(Time<T_Gnd_max)) return 0;
-  else if((Time>T_Gnd_max)&&(Time<T_Block_far_max)) return 2;
+int isBlock(){ // Ground->0; Block->1
+  long dis=GetDis_Ultrasonic();
+  if(dis<T_Block_max) return 1;
+  else if(dis>T_Gnd_min) return 0;
   else return -1;
 }
 
@@ -178,35 +183,42 @@ void setDriveDir(String dir) {
   // Takes a String parameter
   if (dir == "Stop") {leftMotorTarget = 0; rightMotorTarget = 0;}
   if (dir == "Forward") {leftMotorTarget = 255; rightMotorTarget = 255;}
-  if (dir == "SlowForward") {leftMotorTarget = 70; rightMotorTarget = 70;}
+  if (dir == "SlowForward") {leftMotorTarget = 180; rightMotorTarget = 180;}
   if (dir == "Backward") {leftMotorTarget = -255; rightMotorTarget = -255;}
-  if (dir == "Left") {leftMotorTarget = -120; rightMotorTarget = 120;}
-  if (dir == "Right") {leftMotorTarget = 120; rightMotorTarget = -120;}
-  if (dir == "SlowLeft") {leftMotorTarget = -70; rightMotorTarget = 70;}
-  if (dir == "SlowRight") {leftMotorTarget = 70; rightMotorTarget = -70;}
-  if (dir == "BackLeft") {leftMotorTarget = 0; rightMotorTarget = 120;}
-  if (dir == "BackRight") {leftMotorTarget = 120; rightMotorTarget = 0;}
+  if (dir == "Left") {leftMotorTarget = -255; rightMotorTarget = 255;}
+  if (dir == "Right") {leftMotorTarget = 255; rightMotorTarget = -255;}
+  if (dir == "SlowLeft") {leftMotorTarget = -255; rightMotorTarget = 255;}
+  if (dir == "SlowRight") {leftMotorTarget = 255; rightMotorTarget = -255;}
+  if (dir == "BackLeft") {leftMotorTarget = 0; rightMotorTarget = 180;}
+  if (dir == "BackRight") {leftMotorTarget = 180; rightMotorTarget = 0;}
 }
 
 
 
 // ___ GRABBER ___
-void GrabberUp() {
+void GrabberDown() {
     int pos = 0;
-    for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+    for (pos = 0; pos <= 85; pos += 1) { // goes from 40 degrees to 150 degrees
         // in steps of 1 degree
-        grabberServo.write(pos);              // tell servo to go to position in variable 'pos'
-        delay(15);                       // waits 15 ms for the servo to reach the position
+        liftServo.write(pos);              // tell servo to go to position in variable 'pos'
+        delay(10);                       // waits 15 ms for the servo to reach the position
     }
 }
 
 
-void GrabberDown() {
-    int pos = 180;
-    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-        grabberServo.write(pos);              // tell servo to go to position in variable 'pos'
-        delay(15);                       // waits 15 ms for the servo to reach the position       
+void GrabberUp() {
+    int pos = 0;
+    for (pos = 85; pos >= 0; pos -= 1) { // goes from 150 degrees to 40 degrees
+        liftServo.write(pos);              // tell servo to go to position in variable 'pos'
+        delay(10);                       // waits 15 ms for the servo to reach the position       
     }
+}
+
+
+void setGrabberClosed(bool closeState) {
+  grabberMotor->run(closeState ? BACKWARD : FORWARD);
+  grabberMotor->setSpeed(255);
+
 }
 
 
@@ -231,35 +243,67 @@ bool returnToLine(bool leftOfLine){
 void setup() {
   // put your setup code here, to run once:
   AFMS.begin();
-  grabberServo.attach(10);  // attaches the servo on pin 10 to the servo object
+  liftServo.attach(10);  // attaches the servo on pin 10 to the servo object
   pinMode(leftLineSensor,INPUT);
   pinMode(rightLineSensor,INPUT);
   Set_Ultrasonic();
   Serial.begin(9600);
+
+
 }
 
 
 void loop() {
   // Logic
   static int counter = 0;
-  static int timer = 0; 
+  static unsigned long timer = 0; 
   // To remember what the currently held block's type is
   static bool isBlockMetal = false; 
   // When scanning off the line, this lets the robot know which side of the line it's on.
   static bool leftOfLine = true;
 
+
+
+//GrabberDown();
+//delay(1000);
+//GrabberUp();
+//delay(3000);
+//  delay(3000);
+//
+//  while(true) {
+//    setGrabberClosed(true);
+//    delay(1000);
+//    GrabberUp();
+//    delay(8000);
+//    GrabberDown();
+//    delay(2000);
+//    setGrabberClosed(false);
+//    delay(3000);
+//  }
+
+//liftServo.write(125);
+ //Serial.println(isBlock());
+ //Serial.println(GetDis_Ultrasonic());
+  //delay(50);
+
   switch (state){
     
     case START: // Travel from start to pickup box
+      if(up==1) {GrabberUp(); up=0;}
       followLine();
       if (detectedPerpendicularLine) counter = counter + 1;
-      if (counter == 3) {state = STARTING_BLOCK_SEARCH;  timer = t + 10;}
+      if (counter == 3) 
+      {
+        state = STARTING_BLOCK_SEARCH; 
+        timer = t + 200;// 200ms
+        GrabberDown();
+      }
     break;
 
     
     case STARTING_BLOCK_SEARCH:
       if (t < timer) setDriveDir("Backward");
-      else {state = SWEEP; leftOfLine = true; timer = t + 100;}
+      else {state = SWEEP; leftOfLine = true; timer = t + RotateTime;}
     break;
 
     case SWEEP:
@@ -268,33 +312,37 @@ void loop() {
       }
       else if (returnToLine(leftOfLine)){ // Returned back to line?
         if (leftOfLine) { // Returning from left
-          timer = t + 100;
+          timer = t + RotateTime;
         } else { // Returning from right
           state = SWEEP_FORWARD;
-          timer = t + 30;
+          timer = t + 300;  // time moving forward
         }
         leftOfLine = !leftOfLine;
-      } else if (isBlock() != 0){
+      } 
+      else if (false){//isBlock() == 1){
         
         state = PICK_UP_BLOCK;
+        timer = t + 200;
       }
     break;
 
     case SWEEP_FORWARD:
-      if (t < timer) setDriveDir("SlowForward");
+      if (t < timer) setDriveDir("Forward");
       else {
         state = SWEEP;
-        timer = t + 100;
+        timer = t + RotateTime;
         leftOfLine = true;
       }
     break;
 
     case PICK_UP_BLOCK:
-      printf("Found");
-      setDriveDir("Stop");
-      // TODO Pick up block
-      state = IDENTIFY_BLOCK;
-    break;
+      if (t < timer) setDriveDir("SlowForward");
+      else {
+        setDriveDir("Stop");
+        state = IDENTIFY_BLOCK;
+        setGrabberClosed(true);
+      }
+      break;
 
     case IDENTIFY_BLOCK:
     // TODO identify
@@ -319,6 +367,6 @@ void loop() {
   // Loop updates 
   updateMotors();
   updateSensing();
-  t = t+1;
+  t=millis();
   delay(2);
 }

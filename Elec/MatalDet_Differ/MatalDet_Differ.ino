@@ -21,17 +21,25 @@
  
 // First time, run with with serial print on and tune value of npulse
 // to get capacitor reading between 200 and 300
- 
-const byte npulse = 3;
-const bool sound = false;
+
+
+//#include <Filters.h>
+
+float x[] = {0,0,0};
+float y[] = {0,0,0};
+int k = 0;
+
+
+
+const byte npulse = 1;
 const bool debug = true;
  
-const byte pin_pulse=A0;
+const byte pin_pulse=3;
 const byte pin_cap  =A1;
 const byte pin_gnd  =A2;
 const byte pin_LED1 =12;
 const byte pin_LED2 =11;
-const byte pin_tone =10;
+
  
 void setup() {
   if (debug) Serial.begin(9600);
@@ -39,15 +47,14 @@ void setup() {
   digitalWrite(pin_pulse, LOW);
   pinMode(pin_cap, INPUT); 
   pinMode(pin_gnd, INPUT);  
+  
   pinMode(pin_LED1, OUTPUT);
   digitalWrite(pin_LED1, LOW);
   pinMode(pin_LED2, OUTPUT);
   digitalWrite(pin_LED2, LOW);
-  if(sound)pinMode(pin_tone, OUTPUT);
-  if(sound)digitalWrite(pin_tone, LOW);
 }
  
-const int nmeas=256;  //measurements to take
+const int nmeas=512;  //measurements to take
 long int sumsum=0; //running sum of 64 sums
 long int skip=0;   //number of skipped sums
 long int diff=0;        //difference between sum and avgsum
@@ -65,14 +72,14 @@ void loop() {
     //reset the capacitor
     pinMode(pin_cap,OUTPUT);
     digitalWrite(pin_cap,LOW);
-    delayMicroseconds(30);
+    delayMicroseconds(20);
     pinMode(pin_cap,INPUT);
     //apply pulses
     for (int ipulse = 0; ipulse < npulse; ipulse++) {
       digitalWrite(pin_pulse,HIGH); //takes 3.5 microseconds
-      delayMicroseconds(10);
+      delayMicroseconds(8);
       digitalWrite(pin_pulse,LOW);  //takes 3.5 microseconds
-      delayMicroseconds(10);
+      delayMicroseconds(8);
     }
     //read the charge on the capacitor
     int val = analogRead(pin_cap)-analogRead(pin_gnd); //takes 13x8=104 microseconds
@@ -87,11 +94,9 @@ void loop() {
     if (timestamp<prev_flash+10){
       if (diff>50){
         ledstat=1;
-        delayMicroseconds(5000);
       }
       if (diff<-50){
         ledstat=1;
-        delayMicroseconds(5000);
       }
       else ledstat = 0;
     }
@@ -113,18 +118,15 @@ void loop() {
     if (ledstat==0){
       digitalWrite(pin_LED1,LOW);
       digitalWrite(pin_LED2,LOW);
-      if(sound)noTone(pin_tone);
     }
     if (ledstat==1){
       digitalWrite(pin_LED1,HIGH);
      
       digitalWrite(pin_LED2,LOW);
-      if(sound)tone(pin_tone,2000);
     }
     if (ledstat==2){
       digitalWrite(pin_LED1,LOW);
       digitalWrite(pin_LED2,HIGH);
-      if(sound)tone(pin_tone,500);
     }
  
   }
@@ -134,8 +136,8 @@ void loop() {
  
  
   //process
-  if (sumsum==0) sumsum=sum<<6; //set sumsum to expected value
-  long int avgsum=(sumsum+32)>>6;
+  if (sumsum==0) sumsum=sum<<7; //set sumsum to expected value
+  long int avgsum=(sumsum+64)>>7;
   diff=sum-avgsum;
  
  
@@ -145,20 +147,45 @@ void loop() {
   } else {
     skip++;
   }
-  if (skip>64){     // break off in case of prolonged skipping
-    sumsum=sum<<6;
+  if (skip>128){     // break off in case of prolonged skipping
+    sumsum=sum<<7;
     skip=0;
   }
- 
- 
- 
  
   // one permille change = 2 ticks/s
   if (diff==0) flash_period = 1000000;
   else flash_period=avgsum/(2*abs(diff));   
-   
-  if (debug){
-    Serial.println(diff);
+
+  x[0] = diff;
+  float b[] = {0.00024132, 0.00048264, 0.00024132};
+  float a[] = {1.95558189, -0.95654717};
+  y[0] = a[0]*y[1] + a[1]*y[2] +
+               b[0]*x[0] + b[1]*x[1] + b[2]*x[2];
+
+/*
+  if(k % 3 ==0)
+  {
+    // This extra conditional statement is here to reduce
+    // the number of times the data is sent through the serial port
+    // because sending data through the serial port
+    // messes with the sampling frequency
+    
+    // For the serial monitor
+    Serial.print(2*x[0]);
+    Serial.print(" ");
+    Serial.println(2*y[0]);
+  }
+  */
+
+  delay(1); // Wait 1ms
+  for(int i = 1; i >= 0; i--){
+    x[i+1] = x[i]; // store xi
+    y[i+1] = y[i]; // store yi
+  }
+  
+  k = k+1;
+
+  Serial.println(y[0]);
     /*Serial.println(nmeas);
     Serial.print(" ");
     Serial.println(minval);
@@ -174,6 +201,5 @@ void loop() {
     Serial.println(flash_period);
     Serial.print(" "); */
  
-  }
  
 }

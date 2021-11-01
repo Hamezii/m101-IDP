@@ -8,25 +8,16 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  int mag1 = analogRead(HallPin);
+  long mag1 = analogRead(HallPin);
   delay(1);
-  mag1 += analogRead(HallPin);
-   delay(1);
-  mag1 += analogRead(HallPin);
-   delay(1);
-  mag1 += analogRead(HallPin);
-   delay(1);
-  mag1 += analogRead(HallPin);
-  delay(1);
-   mag1 += analogRead(HallPin);
-   delay(1);
-  mag1 += analogRead(HallPin);
-   delay(1);
-  mag1 += analogRead(HallPin);
-   delay(1);
-  mag1 += analogRead(HallPin);
-  
-  Serial.println(mag1/9);
+  Serial.println(mag1);  // if metal detector can return voltage stably, try to place LEGO at different position to find a suitable threshold
   delay(2);
+
+ 
+  /*
+  if (mag1 > 600) { // Threshold about 3V
+    Serial.println(1);
+  }
+  else Serial.println(0);
+  */
 }
