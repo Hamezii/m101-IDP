@@ -10,8 +10,8 @@ using namespace std;
 
 // ___ OBJECTS ___
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
-Adafruit_DCMotor *leftMotor = AFMS.getMotor(4);
-Adafruit_DCMotor *rightMotor = AFMS.getMotor(3);
+Adafruit_DCMotor *leftMotor = AFMS.getMotor(3);
+Adafruit_DCMotor *rightMotor = AFMS.getMotor(4);
 Adafruit_DCMotor *grabberMotor = AFMS.getMotor(2);
 Servo liftServo;
 
@@ -19,18 +19,18 @@ Servo liftServo;
 
 // ___ CONSTANTS ___
 const int MOTOR_ACCEL = 1000;
-const unsigned long RotateTime = 1000;
-#define leftLineSensor 4
-#define rightLineSensor 5
+const unsigned long RotateTime = 500;
+#define leftLineSensor 7
+#define rightLineSensor 11
 
 
 
 // ___ VARIABLE INITS ___
 // Ultrasonic sensor
-int trigPin = 10;    // Trigger
-int echoPin = 11;    // Echo
+int trigPin = 12;    // Trigger
+int echoPin = 13;    // Echo
 //long H_Ultra = 8;   // Height of ultrasonic sensor (cm)
-long T_Gnd_min = 10.5;
+long T_Gnd_min = 9.5;
 long T_Block_max = 9.5;
 // need to test value after fix ultrasonic
 
@@ -106,6 +106,11 @@ long GetDis_Ultrasonic(){
 
 int isBlock(){ // Ground->0; Block->1
   long dis=GetDis_Ultrasonic();
+  delay(2);
+  dis+=GetDis_Ultrasonic();
+  delay(2);
+  dis=GetDis_Ultrasonic();
+  dis/=3;
   if(dis<T_Block_max) return 1;
   else if(dis>T_Gnd_min) return 0;
   else return -1;
@@ -182,15 +187,15 @@ void setDriveDir(String dir) {
   // Set the direction for the robot to drive in
   // Takes a String parameter
   if (dir == "Stop") {leftMotorTarget = 0; rightMotorTarget = 0;}
-  if (dir == "Forward") {leftMotorTarget = 255; rightMotorTarget = 255;}
-  if (dir == "SlowForward") {leftMotorTarget = 180; rightMotorTarget = 180;}
-  if (dir == "Backward") {leftMotorTarget = -255; rightMotorTarget = -255;}
-  if (dir == "Left") {leftMotorTarget = -255; rightMotorTarget = 255;}
-  if (dir == "Right") {leftMotorTarget = 255; rightMotorTarget = -255;}
-  if (dir == "SlowLeft") {leftMotorTarget = -255; rightMotorTarget = 255;}
-  if (dir == "SlowRight") {leftMotorTarget = 255; rightMotorTarget = -255;}
-  if (dir == "BackLeft") {leftMotorTarget = 0; rightMotorTarget = 180;}
-  if (dir == "BackRight") {leftMotorTarget = 180; rightMotorTarget = 0;}
+  if (dir == "Forward") {leftMotorTarget = -255; rightMotorTarget = -255;}
+  if (dir == "SlowForward") {leftMotorTarget = -180; rightMotorTarget = -180;}
+  if (dir == "Backward") {leftMotorTarget = 255; rightMotorTarget = 255;}
+  if (dir == "Left") {leftMotorTarget = 255; rightMotorTarget = -255;}
+  if (dir == "Right") {leftMotorTarget = -255; rightMotorTarget = 255;}
+  if (dir == "SlowLeft") {leftMotorTarget = 255; rightMotorTarget = -255;}
+  if (dir == "SlowRight") {leftMotorTarget = -255; rightMotorTarget = 255;}
+  if (dir == "BackLeft") {leftMotorTarget = 0; rightMotorTarget = -180;}
+  if (dir == "BackRight") {leftMotorTarget = -180; rightMotorTarget = 0;}
 }
 
 
@@ -198,7 +203,7 @@ void setDriveDir(String dir) {
 // ___ GRABBER ___
 void GrabberDown() {
     int pos = 0;
-    for (pos = 0; pos <= 85; pos += 1) { // goes from 40 degrees to 150 degrees
+    for (pos = 0; pos <= 90; pos += 1) { // goes from 40 degrees to 150 degrees
         // in steps of 1 degree
         liftServo.write(pos);              // tell servo to go to position in variable 'pos'
         delay(10);                       // waits 15 ms for the servo to reach the position
@@ -208,7 +213,7 @@ void GrabberDown() {
 
 void GrabberUp() {
     int pos = 0;
-    for (pos = 85; pos >= 0; pos -= 1) { // goes from 150 degrees to 40 degrees
+    for (pos = 90; pos >= 0; pos -= 1) { // goes from 150 degrees to 40 degrees
         liftServo.write(pos);              // tell servo to go to position in variable 'pos'
         delay(10);                       // waits 15 ms for the servo to reach the position       
     }
@@ -243,7 +248,8 @@ bool returnToLine(bool leftOfLine){
 void setup() {
   // put your setup code here, to run once:
   AFMS.begin();
-  liftServo.attach(10);  // attaches the servo on pin 10 to the servo object
+  liftServo.attach(9);  // attaches the servo on pin 9 to the servo object
+  
   pinMode(leftLineSensor,INPUT);
   pinMode(rightLineSensor,INPUT);
   Set_Ultrasonic();
@@ -263,28 +269,30 @@ void loop() {
   static bool leftOfLine = true;
 
 
-
 //GrabberDown();
 //delay(1000);
 //GrabberUp();
 //delay(3000);
 //  delay(3000);
 //
-//  while(true) {
-//    setGrabberClosed(true);
-//    delay(1000);
-//    GrabberUp();
-//    delay(8000);
-//    GrabberDown();
-//    delay(2000);
-//    setGrabberClosed(false);
-//    delay(3000);
-//  }
+  while(true) {
+    setGrabberClosed(true);
+    delay(800);
+    GrabberUp();
+    delay(800);
+    GrabberDown();
+    delay(800);
+    setGrabberClosed(false);
+    delay(2000);
+  }
 
 //liftServo.write(125);
  //Serial.println(isBlock());
  //Serial.println(GetDis_Ultrasonic());
   //delay(50);
+
+
+/*
 
   switch (state){
     
@@ -364,6 +372,8 @@ void loop() {
     break;
   }
 
+
+  */
   // Loop updates 
   updateMotors();
   updateSensing();

@@ -1,7 +1,7 @@
 
 
 //int lineSensor1 =2;
- int lineSensor1 =5;
+ int lineSensor1 =10;
 //int lineSensor2 =A5;
 // normally, we just use a digital port to read (i.e. 1/2/3...)
 
