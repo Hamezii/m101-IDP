@@ -1,4 +1,3 @@
-
 #include <RunningAverage.h>
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
@@ -22,6 +21,7 @@ const int MOTOR_ACCEL = 1000;
 const unsigned long RotateTime = 500;
 #define leftLineSensor 7
 #define rightLineSensor 11
+#define 
 
 
 
