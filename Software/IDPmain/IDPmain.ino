@@ -21,10 +21,13 @@ const int MOTOR_ACCEL = 1000;
 const unsigned long RotateTime = 500;
 #define leftLineSensor 7
 #define rightLineSensor 11
+<<<<<<< Updated upstream
 #define ledRed 0
 #define ledGreen 1
 #define ledOrange 2
 
+=======
+>>>>>>> Stashed changes
 
 
 // ___ VARIABLE INITS ___
@@ -226,7 +229,7 @@ void GrabberUp() {
 
 
 void setGrabberClosed(bool closeState) {
-  grabberMotor->run(closeState ? BACKWARD : FORWARD);
+  grabberMotor->run(closeState ? FORWARD : BACKWARD );
   grabberMotor->setSpeed(255);
 
 }
@@ -283,15 +286,23 @@ void loop() {
 //delay(3000);
 //  delay(3000);
 //
+
+
   while(true) {
-    setGrabberClosed(true);
+    GrabberDown();
     delay(800);
+    setGrabberClosed(true);
+    delay(1000);
     GrabberUp();
     delay(800);
     GrabberDown();
     delay(800);
     setGrabberClosed(false);
+    delay(800);
+    setGrabberClosed(true);
+    GrabberUp();
     delay(2000);
+   
   }
 
 //liftServo.write(125);
