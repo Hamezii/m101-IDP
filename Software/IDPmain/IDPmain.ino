@@ -28,6 +28,9 @@ const unsigned long RotateTime = 500;
 
 
 // ___ VARIABLE INITS ___
+// LEDs
+unsigned long ledActiveT = 0;
+
 // Ultrasonic sensor
 int trigPin = 12;    // Trigger
 int echoPin = 13;    // Echo
@@ -360,6 +363,7 @@ void loop() {
     case IDENTIFY_BLOCK:
     // TODO identify
       isBlockMetal = true;
+      ledActiveT = t + 8000;
       state = RETURN_TO_LINE;
     break;
 
@@ -379,7 +383,10 @@ void loop() {
 
 
   */
+  
+  // LED
   digitalWrite(ledOrange, (t%2000)<1000 ? HIGH : LOW);
+  digitalWrite((isBlockMetal)? ledRed : ledGreen, (t < ledActiveT)? HIGH : LOW);
   
   // Loop updates 
   updateMotors();
