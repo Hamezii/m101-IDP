@@ -21,7 +21,9 @@ const int MOTOR_ACCEL = 1000;
 const unsigned long RotateTime = 500;
 #define leftLineSensor 7
 #define rightLineSensor 11
-#define 
+#define ledRed 0
+#define ledGreen 1
+#define ledOrange 2
 
 
 
@@ -34,7 +36,7 @@ long T_Gnd_min = 9.5;
 long T_Block_max = 9.5;
 // need to test value after fix ultrasonic
 
-  int up=1; //******
+int up=1; //******
 
 
 // Cache for the current motor speeds
@@ -252,6 +254,9 @@ void setup() {
   
   pinMode(leftLineSensor,INPUT);
   pinMode(rightLineSensor,INPUT);
+  pinMode(ledRed, OUTPUT);
+  pinMode(ledGreen, OUTPUT);
+  pinMode(ledOrange, OUTPUT);
   Set_Ultrasonic();
   Serial.begin(9600);
 
@@ -327,7 +332,7 @@ void loop() {
         }
         leftOfLine = !leftOfLine;
       } 
-      else if (false){//isBlock() == 1){
+      else if (isBlock() == 1){
         
         state = PICK_UP_BLOCK;
         timer = t + 200;
@@ -374,6 +379,8 @@ void loop() {
 
 
   */
+  digitalWrite(ledOrange, (t%2000)<1000 ? HIGH : LOW);
+  
   // Loop updates 
   updateMotors();
   updateSensing();
