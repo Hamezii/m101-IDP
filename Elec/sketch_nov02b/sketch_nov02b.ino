@@ -9,24 +9,24 @@ void loop() {
   delay(2);
   mag1 += analogRead(HallPin);
   delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);
-    mag1 += analogRead(HallPin);
-  delay(2);  
   mag1 += analogRead(HallPin);
   delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1 += analogRead(HallPin);
+  delay(2);
+  mag1/=10;
 
-mag1/=10;
   Serial.println(mag1);  // if metal detector can return voltage stably, try to place LEGO at different position to find a suitable threshold
 /*
   if (mag1 > 530) { // Threshold about 3V
