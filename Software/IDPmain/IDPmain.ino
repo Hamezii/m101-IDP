@@ -18,13 +18,16 @@ Servo liftServo;
 
 // ___ CONSTANTS ___
 const int MOTOR_ACCEL = 1000;
-const float SERVO_SPEED = 0.25;
-const unsigned long RotateTime = 500;
+const float SERVO_SPEED = 1;
+const unsigned long FORWARD_10cm_TIME = 850; // test done
+const unsigned long ROTATE_30_TIME = 580; //test done
 #define leftLineSensor 7
 #define rightLineSensor 11
 #define ledRed 0
 #define ledGreen 1
 #define ledOrange 2
+#define HallPin A0
+#define SWPin 3
 
 
 // ___ VARIABLE INITS ___
@@ -34,12 +37,9 @@ unsigned long ledActiveT = 0;
 // Ultrasonic sensor
 int trigPin = 12;    // Trigger
 int echoPin = 13;    // Echo
-//long H_Ultra = 8;   // Height of ultrasonic sensor (cm)
 long T_Gnd_min = 9.5;
 long T_Block_max = 9.5;
 // need to test value after fix ultrasonic
-
-int up=1; //******
 
 
 // Cache for the current motor speeds
@@ -54,8 +54,8 @@ int rightMotorTarget = 0;
 
 
 // Servo
-float servoAngle = 0;
-float servoAngleTarget = 0;
+float servoAngle = 60;
+float servoAngleTarget = 60;
 
 
 // Running average of sensor values, for more accurate read values
@@ -71,8 +71,8 @@ bool detectedPerpendicularLine = false;
 bool onPerpendicularLine = false;
 
 // State
-enum State_enum {START, STARTING_BLOCK_SEARCH, SWEEP, SWEEP_FORWARD, PICK_UP_BLOCK, IDENTIFY_BLOCK, RETURN_TO_LINE, GO_TO_DROPOFF, PICKING_DROPOFF};
-uint8_t state =START;              //uint8_t is an 8-bit integer / byte
+enum State_enum {START, REACH_COLLECTION_POINT, STARTING_BLOCK_SEARCH, SWEEP, SWEEP_FORWARD, PICK_UP_BLOCK, RETURN_TO_LINE, TURN_AROUND, GO_TO_DROPOFF, PICKING_DROPOFF, DROPPING_BLOCK, FIND_START_LINE};
+uint8_t state =REACH_COLLECTION_POINT;              //uint8_t is an 8-bit integer / byte
 unsigned long t = 0; // t is incremented after each loop.
 
 
@@ -117,11 +117,6 @@ long GetDis_Ultrasonic(){
 
 int isBlock(){ // Ground->0; Block->1
   long dis=GetDis_Ultrasonic();
-  delay(2);
-  dis+=GetDis_Ultrasonic();
-  delay(2);
-  dis=GetDis_Ultrasonic();
-  dis/=3;
   if(dis<T_Block_max) return 1;
   else if(dis>T_Gnd_min) return 0;
   else return -1;
@@ -159,8 +154,15 @@ bool rightLineSensorVal() {
 
 
 bool detectMetal() {
-  return true;
+  
+  long mag1 = analogRead(HallPin);
+  
+  if (mag1 > 530)// Threshold // test
+    return true;
+  else return false;
 }
+
+
 
 
 // ___ MOTOR MANAGEMENT ___
@@ -199,12 +201,9 @@ void updateMotors() {
 
 
 
-
-
-
-
 // ___ GRABBER ___
 void updateServo() {
+  //servoAngle = liftServo.read();
   if (servoAngleTarget > servoAngle) {
     servoAngle = min(servoAngle + SERVO_SPEED, servoAngleTarget);
   } else {
@@ -213,18 +212,19 @@ void updateServo() {
   liftServo.write(servoAngle);
 }
 
+
 void GrabberDown() {
-  servoAngleTarget = 90;
+  servoAngleTarget = 60;
 }
 
 
 void GrabberUp() {
-  servoAngleTarget = 0;
+  servoAngleTarget = 150;
 }
 
 
 void setGrabberClosed(bool closeState) {
-  grabberMotor->run(closeState ? FORWARD : BACKWARD );
+  grabberMotor->run(closeState ?  FORWARD : BACKWARD );
   grabberMotor->setSpeed(255);
 
 }
@@ -243,23 +243,21 @@ void setDriveDir(String dir) {
   if (dir == "Right") {leftMotorTarget = -255; rightMotorTarget = 255;}
   if (dir == "SlowLeft") {leftMotorTarget = 255; rightMotorTarget = -255;}
   if (dir == "SlowRight") {leftMotorTarget = -255; rightMotorTarget = 255;}
-  if (dir == "BackLeft") {leftMotorTarget = 0; rightMotorTarget = -180;}
-  if (dir == "BackRight") {leftMotorTarget = -180; rightMotorTarget = 0;}
 }
 
 
 
 // ___ ALGORITHMS ___
-void followLine(int forward = true){
-  if (onPerpendicularLine) setDriveDir(forward ? "Forward": "Backward");
-  else if(!leftLineSensorVal() && !rightLineSensorVal()) setDriveDir(forward ? "Forward" : "Backward");
-  else if(leftLineSensorVal() && !rightLineSensorVal()) setDriveDir(forward ? "Left" : "BackRight");
-  else if(!leftLineSensorVal() && rightLineSensorVal()) setDriveDir(forward ? "Right" : "BackLeft");
+void followLine(){
+  if (onPerpendicularLine) setDriveDir("Forward");
+  else if(!leftLineSensorVal() && !rightLineSensorVal()) setDriveDir("Forward");
+  else if(leftLineSensorVal() && !rightLineSensorVal()) setDriveDir("Left");
+  else if(!leftLineSensorVal() && rightLineSensorVal()) setDriveDir("Right");
 }
 
 
 bool returnToLine(bool leftOfLine){
-  setDriveDir(leftOfLine ? "SlowRight" : "SlowLeft");
+  setDriveDir(leftOfLine ? "SlowRight" : "Slv bowLeft");
   // Just stopped sensing line? (meaning it is now between the sensors)
   return (!rightLineSensorVal() && !leftLineSensorVal()) && (rightLineSensorPrev || leftLineSensorPrev);
 }
@@ -273,11 +271,32 @@ void setup() {
   
   pinMode(leftLineSensor,INPUT);
   pinMode(rightLineSensor,INPUT);
+  pinMode(HallPin, INPUT);
+  pinMode(SWPin, INPUT);
+  
   pinMode(ledRed, OUTPUT);
   pinMode(ledGreen, OUTPUT);
   pinMode(ledOrange, OUTPUT);
   Set_Ultrasonic();
-  Serial.begin(9600);
+  //Serial.begin(9600);
+
+  setGrabberClosed(true);
+ 
+  delay(1000);  
+  digitalWrite(ledRed,LOW);
+
+
+  while(!digitalRead(SWPin)); // wait until swPin reads HIGH
+
+  /*
+  long tt = millis()+FORWARD_10cm_TIME;
+  setDriveDir("Forward");
+    updateMotors();
+  while(tt > millis());
+  setDriveDir("Stop");
+    updateMotors();
+    */
+  
 
 
 }
@@ -291,63 +310,51 @@ void loop() {
   static bool isBlockMetal = false;
   // When scanning off the line, this lets the robot know which side of the line it's on.
   static bool leftOfLine = true;
-  static bool firstBlock = true;
-
-
-//GrabberDown();
-//delay(1000);
-//GrabberUp();
-//delay(3000);
-//  delay(3000);
-//
-
-
-  while(false) {
-    GrabberDown();
-    delay(800);
-    setGrabberClosed(true);
-    delay(1000);
-    GrabberUp();
-    delay(800);
-    GrabberDown();
-    delay(800);
-    setGrabberClosed(false);
-    delay(800);
-    setGrabberClosed(true);
-    GrabberUp();
-    delay(2000);
-   
-  }
-
-//liftServo.write(125);
- //Serial.println(isBlock());
- //Serial.println(GetDis_Ultrasonic());
-  //delay(50);
+  static int blockNum = 0;
+  
 
 
 
   switch (state){
     
     case START: // Travel from start to pickup box
-      if(up==1) {GrabberUp(); up=0;}
+      setGrabberClosed(false);
+      GrabberUp(); 
       followLine();
       if (detectedPerpendicularLine) counter = counter + 1;
-      if (counter == 3) 
-      {
-        timer = t + 200;// 200ms
-        GrabberDown();
-        if (firstBlock) {
-          state = IDENTIFY_BLOCK;
-        } else {
-          state = STARTING_BLOCK_SEARCH; 
-        }
+      if (counter == 2) {
+        state = REACH_COLLECTION_POINT;
+        if(blockNum == 0) timer = t + 14000; // test done
+        else timer = t + 12500; // test done
       }
+
+
     break;
 
-    
+
+    case REACH_COLLECTION_POINT:
+      if (t < timer) followLine(); // keep moving with grabber up
+      else{
+        followLine();
+        GrabberDown();
+        if (detectedPerpendicularLine) counter = counter + 1;
+        if (counter == 3) 
+        {
+          timer = t + 0.3 * FORWARD_10cm_TIME ; // 5cm // test
+          if (blockNum == 0) {
+            state = PICK_UP_BLOCK;
+          } else {
+          state = STARTING_BLOCK_SEARCH; 
+          }
+        }
+      }
+  
+    break;
+
+
     case STARTING_BLOCK_SEARCH:
       if (t < timer) setDriveDir("Backward");
-      else {state = SWEEP; leftOfLine = true; timer = t + RotateTime;}
+      else {state = SWEEP; leftOfLine = true; timer = t + 1 * ROTATE_30_TIME;}  // sweep time // test
     break;
 
     case SWEEP:
@@ -356,16 +363,18 @@ void loop() {
       }
       else if (returnToLine(leftOfLine)){ // Returned back to line?
         if (leftOfLine) { // Returning from left
-          timer = t + RotateTime;
-        } else { // Returning from right
+          timer = t + 1 * ROTATE_30_TIME;  // sweep time // test
+        } 
+        else { // Returning from right
           state = SWEEP_FORWARD;
-          timer = t + 300;  // time moving forward
+          timer = t + FORWARD_10cm_TIME;  // time moving forward
         }
         leftOfLine = !leftOfLine;
       } 
-      else if (isBlock() == 1){
+      
+      if (isBlock() == 1){ // <else if> -> <if>
         
-        state = IDENTIFY_BLOCK;
+        state = PICK_UP_BLOCK;
         timer = t + 200;
       }
     break;
@@ -374,52 +383,98 @@ void loop() {
       if (t < timer) setDriveDir("Forward");
       else {
         state = SWEEP;
-        timer = t + RotateTime;
+        timer = t + 1 * ROTATE_30_TIME; // sweep time // test
         leftOfLine = true;
       }
     break;
 
     case PICK_UP_BLOCK:
-      state = RETURN_TO_LINE;
-      setGrabberClosed(true);
-    break;
-
-    case IDENTIFY_BLOCK:
-    // TODO identify
+    // TODO identify 
       if (t < timer) setDriveDir("SlowForward");
       else {
         setDriveDir("Stop");
-        isBlockMetal = true;
+        isBlockMetal = detectMetal();
         ledActiveT = t + 8000;
-        state = PICK_UP_BLOCK;
+        setGrabberClosed(true);
+        timer = t + 2000; // test
+        state = RETURN_TO_LINE;
       }
     break;
 
     case RETURN_TO_LINE:
-      if (returnToLine(leftOfLine)) {
+      if(t<timer);
+      else if (returnToLine(leftOfLine)|| (blockNum==0)) {
+        state = TURN_AROUND;
+        timer = t + ROTATE_30_TIME * 4; // Time to skip lines // test
+      }
+    break;
+
+    case TURN_AROUND:
+      if (returnToLine(false) && t > timer) {
+        GrabberUp();
         state = GO_TO_DROPOFF;
         counter = 0;
       }
     break;
 
     case GO_TO_DROPOFF:
-      followLine(false); // Going backwards
-      if (detectedPerpendicularLine) counter = counter + 1;
-      if (counter == 2) state = PICKING_DROPOFF;
+    if (t < timer) setDriveDir("Forward");
+    else if (counter == 1) {
+      state = PICKING_DROPOFF;
+      timer = t + ROTATE_30_TIME * 3;
+    } else {
+      followLine();
+      if (detectedPerpendicularLine) {
+        timer = t + FORWARD_10cm_TIME;
+        counter = 1;
+      }
+    } 
     break;
+
+    case PICKING_DROPOFF:
+      if (t < timer) setDriveDir(isBlockMetal ? "Right" : "Left");
+      else {
+        blockNum = blockNum + 1;
+        state = DROPPING_BLOCK;
+        timer = t + 1000; // test
+      }
+    break;
+
+    case DROPPING_BLOCK:
+      setDriveDir("Stop");
+      setGrabberClosed(false);
+      GrabberUp();
+      if (t > timer) {
+        state = FIND_START_LINE;
+        timer = t + ROTATE_30_TIME * 2;
+      }
+    break;
+
+    case FIND_START_LINE:
+      if (returnToLine(isBlockMetal) && t > timer) {
+        state = START;
+        counter = 2;
+      }
+    break;
+  
+  
   }
 
-  
+
   // LED
-  digitalWrite(ledOrange, (t%500)<250 ? HIGH : LOW);
+  digitalWrite(ledOrange, ((t%500)<250) && (leftMotorCurrent != 0 || rightMotorCurrent != 0) ? HIGH : LOW);
   digitalWrite((isBlockMetal)? ledRed : ledGreen, (t < ledActiveT)? HIGH : LOW);
   
   // Loop updates 
   updateMotors();
   updateSensing();
 
-
-  while((unsigned long)(millis() - t) <= 2){ //test again after period
+  /*
+  if((millis()-t)>8) digitalWrite(ledRed,HIGH);
+  else digitalWrite(ledRed,LOW);
+  */
+  
+  while((unsigned long)(millis() - t) <= 10){ // actual period ~7
     // wait here
   }
   t = millis();
