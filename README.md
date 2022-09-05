@@ -2,9 +2,8 @@
 Cool robot!
 Team name: TAIPEI101
 Team member:<br>
-<li>Nested One</li>
 
-Derek	> Elec engineer, team leader<br>
+| Derek	> Elec engineer, team leader<br>
 Laura > Elec engineer<br>
 Caleb	> ME engineer<br>
 Ben	> ME engineer<br>
