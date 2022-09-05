@@ -1,10 +1,13 @@
 # CUED Integrated Design Project
-Cool robot!<br>
-Team name: TAIPEI101<br><br>
+
+- Integrated Design Project Project (10/2021 – 11/2021, 2 months)
+- Robotics challenge organised by Cambridge University Engineering Department
+- Our team fnished tasks and achieved 4 th place among all 13 teams
+
+Team name: TAIPEI101<br>
+
 Team member:<br>
-
-
-| Team member     | Role |
+| name            | Role |
 | -----------     | ----------- |
 | Derek Dong      | Elec engineer, team leader |
 | Laura Clapham   | Elec engineer |
