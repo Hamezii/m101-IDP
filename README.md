@@ -1,11 +1,14 @@
 # CUED Integrated Design Project
 Cool robot!<br>
-Team name: TAIPEI101
+Team name: TAIPEI101<br><br>
 Team member:<br>
 
-- Derek	/ Elec engineer, team leader<br>
-- Laura > Elec engineer<br>
-- Caleb	> ME engineer<br>
-- Ben	> ME engineer<br>
-- Tom	> Algorithm engineer<br>
-- James	> Algorithm engineer<br>
+
+| Team member     | Role |
+| -----------     | ----------- |
+| Derek Dong      | Elec engineer, team leader |
+| Laura Clapham   | Elec engineer |
+| Caleb	Chan      | ME engineer|
+| Ben Silva       | ME engineer|
+| Tom	Hill        | Algorithm engineer|
+| James	Lecomte   | Algorithm engineer|
