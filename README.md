@@ -17,7 +17,6 @@ Team member:<br>
 | Tom	Hill        | Algorithm engineer|
 | James	Lecomte   | Algorithm engineer|
 
-![Our robot](/IMG_2881.jpeg)
-![Our robot](/IMG_2882.jpeg)
-![Our robot](/IMG_2883.jpeg)
-![Our robot](/IMG_2889.mov)
+![Our robot](/Pics/IMG_2881.jpeg)
+![Our robot](/Pics/IMG_2882.jpeg)
+![Our robot](/Pics/IMG_2883.jpeg)
